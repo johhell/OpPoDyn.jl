@@ -154,6 +154,57 @@ if isdefined(Main, :EXPORT_FIGURES) && Main.EXPORT_FIGURES
     save(joinpath(pkgdir(OpPoDyn),"docs","src","assets","OpenIPSL_valid","WT_comparison.pdf"), fig)
 end
 
+if isdefined(Main, :EXPORT_FIGURES) && Main.EXPORT_FIGURES
+    fig1 = let
+        fig = Figure(resolution=(1400, 1200))
+        ts_fig = range(1.5, 3.5; length=2000)
+        xlims = (1.5, 3.5)
+
+        ax1 = Axis(fig[1,1]; xlabel="Time [s]", ylabel="[pu]", title="V real in", limits=(xlims..., nothing, nothing))
+        lines!(ax1, ref_wt.time, ref_wt[!, Symbol("wind.RenewableGenerator.p.vr")]; label="OpenIPSL", color=:steelblue, linewidth=2, alpha=0.7)
+        lines!(ax1, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊pvr)).u; label="PowerDynamics.jl", color=:steelblue, linestyle=:dash, linewidth=2)
+        axislegend(ax1)
+
+        ax2 = Axis(fig[1,2]; xlabel="Time [s]", ylabel="[pu]", title="V imag in", limits=(xlims..., nothing, nothing))
+        lines!(ax2, ref_wt.time, ref_wt[!, Symbol("wind.RenewableGenerator.p.vi")]; label="OpenIPSL", color=:steelblue, linewidth=2, alpha=0.7)
+        lines!(ax2, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊pvi)).u; label="PowerDynamics.jl", color=:steelblue, linestyle=:dash, linewidth=2)
+        axislegend(ax2)
+
+        ax3 = Axis(fig[2,1]; xlabel="Time [s]", ylabel="[pu]", title="P_ref (repc_a out)", limits=(xlims..., nothing, nothing))
+        lines!(ax3, ref_wt.time, ref_wt[!, Symbol("wind.PlantController.Pref")]; label="OpenIPSL", color=:purple, linewidth=2, alpha=0.7)
+        lines!(ax3, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊repca₊P_ref)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
+        axislegend(ax3)
+
+        ax4 = Axis(fig[2,2]; xlabel="Time [s]", ylabel="[pu]", title="Q_ref (repc_a out)", limits=(xlims..., nothing, nothing))
+        lines!(ax4, ref_wt.time, ref_wt[!, Symbol("wind.PlantController.Qext")]; label="OpenIPSL", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax4, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊repca₊Q_ext)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
+        axislegend(ax4)
+
+        ax5 = Axis(fig[3,1]; xlabel="Time [s]", ylabel="[pu]", title="I_pcmd (reec_a out)", limits=(xlims..., nothing, nothing))
+        lines!(ax5, ref_wt.time, ref_wt[!, Symbol("wind.RenewableController.Ipcmd")]; label="OpenIPSL", color=:purple, linewidth=2, alpha=0.7)
+        lines!(ax5, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊reeca₊I_pcmd)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
+        axislegend(ax5)
+
+        ax6 = Axis(fig[3,2]; xlabel="Time [s]", ylabel="[pu]", title="I_qcmd (reec_a out)", limits=(xlims..., nothing, nothing))
+        lines!(ax6, ref_wt.time, ref_wt[!, Symbol("wind.RenewableController.Iqcmd")]; label="OpenIPSL", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax6, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊reeca₊I_qcmd)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
+        axislegend(ax6)
+
+        ax9 = Axis(fig[4,1]; xlabel="Time [s]", ylabel="[pu]", title="I real out", limits=(xlims..., nothing, nothing))
+        lines!(ax9, ref_wt.time, ref_wt[!, Symbol("wind.RenewableGenerator.p.ir")]; label="OpenIPSL", color=:forestgreen, linewidth=2, alpha=0.7)
+        lines!(ax9, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊pir)).u; label="PowerDynamics.jl", color=:forestgreen, linestyle=:dash, linewidth=2)
+        axislegend(ax9)
+
+        ax10 = Axis(fig[4,2]; xlabel="Time [s]", ylabel="[pu]", title="I imag out", limits=(xlims..., nothing, nothing))
+        lines!(ax10, ref_wt.time, ref_wt[!, Symbol("wind.RenewableGenerator.p.ii")]; label="OpenIPSL", color=:forestgreen, linewidth=2, alpha=0.7)
+        lines!(ax10, ts_fig, sol_wt(ts_fig, idxs=VIndex(:GEN1, :WT₊pii)).u; label="PowerDynamics.jl", color=:forestgreen, linestyle=:dash, linewidth=2)
+        axislegend(ax10)
+
+        fig
+    end
+    save(joinpath(pkgdir(OpPoDyn),"docs","src","assets","OpenIPSL_valid","Modelica-PD_OpenIPSL_WT4B_comparison_overview.pdf"), fig1)
+end
+
 
 # --- PIR & PII ---
 fig_pi = let

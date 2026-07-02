@@ -163,18 +163,18 @@ end
     @components begin
         terminal=Terminal()
         regca = regc_a(
-            I_qrmax = 9999,
-            I_qrmin = -9999,
-            T_g     = 0.02,
+            I_qrmax = 99,
+            I_qrmin = -99,
+            T_g     = 0.017,
             T_fltr  = 0.02,
-            Brkpt   = 0.9,
+            Brkpt   = 0.1,
             Zerox   = 0.5,
             L_vpl1  = 1.22,
             rrpwr   = 10,
             V_0lim = 1.2,
             K_hv = 0.7,
-            lvpnt0 = 0.4,
-            lvpnt1 = 0.8,
+            lvpnt0 = 0.05,
+            lvpnt1 = 0.2,
             I_0lim = -1.3,
             L_vplsw = true)
         reecc = Library.reec_c(
@@ -236,14 +236,14 @@ end
             femin      = -999,
             P_max      = 999,
             P_min      = -999,
-            T_lag      = 0.1,
+            T_lag      = 0.02,
             D_dn       = 20.0,
             D_up       = 0.0,
             P_plantref = 0.015, #from powerflow
             freq_ref   = 50.0,
             p_0        = 0.015,
             RefFlag    = false,
-            VcombFlag  = false,
+            VcombFlag  = true,
             freqFlag   = false)
         f = Blocks.Constant(k=50.0)
         Vref = Blocks.Constant(k=1.0)
