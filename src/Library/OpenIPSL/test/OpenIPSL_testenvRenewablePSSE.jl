@@ -266,11 +266,18 @@ function OpenIPSL_RePSSE_wt(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwtol=
     # pfnw = powerflow_model(nw)
     # pfs = solve_powerflow(pfnw)
 
+    # PfFlag=false on reeca closes a tight algebraic loop (reeca -> regca ->
+    # network -> repca.Q_branch -> reeca) with no intervening dynamic state.
+    # The default Newton-type init solver cannot resolve this loop from the
+    # guesses regardless of maxiters; LevenbergMarquardt (damped least
+    # squares) converges reliably, so use it for the WT bus only.
+    subalg = Dict(VIndex(1) => LevenbergMarquardt())
+
     if just_init
-        s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol=Inf, nwtol=Inf)
+        s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol=Inf, nwtol=Inf, subalg)
         return s0
     end
-    s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol, nwtol)
+    s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol, nwtol, subalg)
     #dump_initial_state(bus1)
     init_residual(bus1; verbose=true)
 

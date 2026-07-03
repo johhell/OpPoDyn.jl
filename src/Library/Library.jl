@@ -6,7 +6,7 @@ using ModelingToolkit: ModelingToolkit, @named, @mtkmodel, @variables, @paramete
 using Symbolics: Symbolics
 using ModelingToolkit: @unpack, Equation, Num, System # needed for @mtkmodel?
 using ModelingToolkitStandardLibrary.Blocks #: RealInput, RealOutput
-using NonlinearSolve: NonlinearProblem
+using NonlinearSolve: NonlinearProblem, LevenbergMarquardt
 using SciMLBase: SciMLBase, solve, ODEProblem
 
 using PowerDynamics

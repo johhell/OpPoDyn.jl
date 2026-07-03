@@ -334,18 +334,18 @@ end
     @components begin
         terminal=Terminal()
         regca = regc_a(
-            I_qrmax = 9999,
-            I_qrmin = -9999,
-            T_g     = 0.02,
+            I_qrmax = 99,
+            I_qrmin = -99,
+            T_g     = 0.01,
             T_fltr  = 0.02,
-            Brkpt   = 0.9,
-            Zerox   = 0.5,
+            Brkpt   = 0.8,
+            Zerox   = 0.1,
             L_vpl1  = 1.22,
-            rrpwr   = 10,
+            rrpwr   = 3,
             V_0lim = 1.2,
-            K_hv = 0.7,
-            lvpnt0 = 0.4,
-            lvpnt1 = 0.8,
+            K_hv = 1,
+            lvpnt0 = 0.1,
+            lvpnt1 = 0.6,
             I_0lim = -1.3,
             L_vplsw = true)
         reeca = Library.reec_a(
@@ -376,7 +376,7 @@ end
             P_max   = 1.0,
             dP_min  = -99,
             dP_max  = 99,
-            PfFlag  = true,
+            PfFlag  = false,
             Vflag   = false,
             QFlag   = false,
             PqFlag  = false)
@@ -412,7 +412,7 @@ end
             freq_ref   = 50.0,
             p_0        = 0.015,
             RefFlag    = false,
-            VcombFlag  = false,
+            VcombFlag  = true,
             freqFlag   = false)
         drive_train = Library.WTDTA1(H=0.01, freq1=10, D_shaft=0.015)
         f = Blocks.Constant(k=50.0)
