@@ -15,7 +15,7 @@ using Test
 using Printf
 
 
-ref_pv = CSV.read(
+ref_pv_pf2 = CSV.read(
     joinpath(pkgdir(OpPoDyn),"test","WECC_model_tests","PV_pf","variables-testcase2Bus-with-event_staticLoad_SystemBase_IdealSlack.csv"),
     DataFrame;
     header = 3,
@@ -24,7 +24,7 @@ ref_pv = CSV.read(
     silencewarnings = true
 )
 
-ref_measures = CSV.read(
+ref_measures_pf2 = CSV.read(
     joinpath(pkgdir(OpPoDyn),"test","WECC_model_tests","PV_pf","measures-testcase2Bus-with-event_staticLoad_SystemBase_IdealSlack.csv"),
     DataFrame;
     header = 3,
@@ -32,7 +32,7 @@ ref_measures = CSV.read(
     decimal = ',',
     silencewarnings = true
 )
-rename!(ref_measures, 1 => :time)
+rename!(ref_measures_pf2, 1 => :time)
 
 
 # bus 1 is provided from outside
@@ -50,29 +50,29 @@ PV_BUS = let
     compile_bus(busmodel, pf=pfPQ(P=P_0, Q=Q_0; current_source=true)) #, assume_io_coupling=true
 end
 
-sol_pv = OpenIPSL_RePSSE_pv_pf(PV_BUS; ω_b = 2π*50);
+sol_pv_pf2 = OpenIPSL_RePSSE_pv_pf(PV_BUS; ω_b = 2π*50);
 
 
 ## perform tests for all variables of interest
 # Plant controls (repc_a)
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊repca₊P_ref), "repc_Pref") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊repca₊Q_ext), "repc_Qext") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊repca₊P_ref), "repc_Pref") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊repca₊Q_ext), "repc_Qext") < 1e-5
 
 # Electrical control (reec_b)
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊Q_measure), "repc_Qbranch") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊P_measure), "repc_Pbranch") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊V_t), "reec_Vt") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊reecb₊I_pcmd), "reec_Ipcmd") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊reecb₊I_qcmd), "reec_Iqcmd") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊reecb₊I_pmax), "reec_Ipmax0") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊reecb₊I_qmax), "reec_Iqmax0") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊reecb₊I_qmin), "reec_Iqmin0") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊Q_measure), "repc_Qbranch") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊P_measure), "repc_Pbranch") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊V_t), "reec_Vt") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊reecb₊I_pcmd), "reec_Ipcmd") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊reecb₊I_qcmd), "reec_Iqcmd") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊reecb₊I_pmax), "reec_Ipmax0") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊reecb₊I_qmax), "reec_Iqmax0") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊reecb₊I_qmin), "reec_Iqmin0") < 1e-5
 
 # Renewable generator (regc_a)
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊regca₊I_lvpl), "regc_Ilvpl") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊I_measure), "repc_Ibranch") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊pvi), "repc_vregi") < 1e-5
-@test ref_rms_error(sol_pv, ref_pv, VIndex(:GEN1, :PV₊pvr), "repc_vregr") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊regca₊I_lvpl), "regc_Ilvpl") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊I_measure), "repc_Ibranch") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊pvi), "repc_vregi") < 1e-5
+@test ref_rms_error(sol_pv_pf2, ref_pv_pf2, VIndex(:GEN1, :PV₊pvr), "repc_vregr") < 1e-5
 
 #Input Plot
 if isdefined(Main, :EXPORT_FIGURES) && Main.EXPORT_FIGURES
@@ -82,53 +82,53 @@ if isdefined(Main, :EXPORT_FIGURES) && Main.EXPORT_FIGURES
         xlims = (0.5, 2.0)
 
         ax1 = Axis(fig[1,1]; xlabel="Time [s]", ylabel="[pu]", title="V real in", limits=(xlims..., nothing, nothing))
-        lines!(ax1, ref_pv.time, ref_pv[!, Symbol("repc_vregr")]; label="PowerFactory", color=:steelblue, linewidth=2, alpha=0.7)
-        lines!(ax1, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pvr)).u; label="PowerDynamics.jl", color=:steelblue, linestyle=:dash, linewidth=2)
+        lines!(ax1, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("repc_vregr")]; label="PowerFactory", color=:steelblue, linewidth=2, alpha=0.7)
+        lines!(ax1, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pvr)).u; label="PowerDynamics.jl", color=:steelblue, linestyle=:dash, linewidth=2)
         axislegend(ax1)
 
         ax2 = Axis(fig[1,2]; xlabel="Time [s]", ylabel="[pu]", title="V imag in", limits=(xlims..., nothing, nothing))
-        lines!(ax2, ref_pv.time, ref_pv[!, Symbol("repc_vregi")]; label="PowerFactory", color=:steelblue, linewidth=2, alpha=0.7)
-        lines!(ax2, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pvi)).u; label="PowerDynamics.jl", color=:steelblue, linestyle=:dash, linewidth=2)
+        lines!(ax2, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("repc_vregi")]; label="PowerFactory", color=:steelblue, linewidth=2, alpha=0.7)
+        lines!(ax2, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pvi)).u; label="PowerDynamics.jl", color=:steelblue, linestyle=:dash, linewidth=2)
         axislegend(ax2)
 
         ax3 = Axis(fig[2,1]; xlabel="Time [s]", ylabel="[pu]", title="P_ref (repc_a out)", limits=(xlims..., nothing, nothing))
-        lines!(ax3, ref_pv.time, ref_pv[!, Symbol("repc_Pref")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
-        lines!(ax3, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊repca₊P_ref)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
+        lines!(ax3, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("repc_Pref")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
+        lines!(ax3, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊repca₊P_ref)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
         axislegend(ax3)
 
         ax4 = Axis(fig[2,2]; xlabel="Time [s]", ylabel="[pu]", title="Q_ref (repc_a out)", limits=(xlims..., nothing, nothing))
-        lines!(ax4, ref_pv.time, ref_pv[!, Symbol("repc_Qext")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
-        lines!(ax4, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊repca₊Q_ext)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
+        lines!(ax4, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("repc_Qext")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax4, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊repca₊Q_ext)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
         axislegend(ax4)
 
         ax5 = Axis(fig[3,1]; xlabel="Time [s]", ylabel="[pu]", title="I_pcmd (reec_b out)", limits=(xlims..., nothing, nothing))
-        lines!(ax5, ref_pv.time, ref_pv[!, Symbol("reec_Ipcmd")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
-        lines!(ax5, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_pcmd)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
+        lines!(ax5, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("reec_Ipcmd")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
+        lines!(ax5, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_pcmd)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
         axislegend(ax5)
 
         ax6 = Axis(fig[3,2]; xlabel="Time [s]", ylabel="[pu]", title="I_qcmd (reec_b out)", limits=(xlims..., nothing, nothing))
-        lines!(ax6, ref_pv.time, ref_pv[!, Symbol("reec_Iqcmd")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
-        lines!(ax6, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_qcmd)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
+        lines!(ax6, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("reec_Iqcmd")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax6, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_qcmd)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
         axislegend(ax6)
 
         ax7 = Axis(fig[4,1]; xlabel="Time [s]", ylabel="[pu]", title="I_pout (regc_a out)", limits=(xlims..., nothing, nothing))
-        lines!(ax7, ref_pv.time, ref_pv[!, Symbol("regc_Ip")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
-        lines!(ax7, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_p)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
+        lines!(ax7, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("regc_Ip")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
+        lines!(ax7, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_p)).u; label="PowerDynamics.jl", color=:purple, linestyle=:dash, linewidth=2)
         axislegend(ax7)
 
         ax8 = Axis(fig[4,2]; xlabel="Time [s]", ylabel="[pu]", title="I_qout (regc_a out)", limits=(xlims..., nothing, nothing))
-        lines!(ax8, ref_pv.time, ref_pv[!, Symbol("regc_Iq")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
-        lines!(ax8, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_q)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
+        lines!(ax8, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("regc_Iq")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax8, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_q)).u; label="PowerDynamics.jl", color=:red, linestyle=:dash, linewidth=2)
         axislegend(ax8)
 
         ax9 = Axis(fig[5,1]; xlabel="Time [s]", ylabel="[pu]", title="I real out", limits=(xlims..., nothing, nothing))
-        lines!(ax9, ref_measures.time, ref_measures.ir; label="PowerFactory", color=:forestgreen, linewidth=2, alpha=0.7)
-        lines!(ax9, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pir)).u; label="PowerDynamics.jl", color=:forestgreen, linestyle=:dash, linewidth=2)
+        lines!(ax9, ref_measures_pf2.time, ref_measures_pf2.ir; label="PowerFactory", color=:forestgreen, linewidth=2, alpha=0.7)
+        lines!(ax9, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pir)).u; label="PowerDynamics.jl", color=:forestgreen, linestyle=:dash, linewidth=2)
         axislegend(ax9)
 
         ax10 = Axis(fig[5,2]; xlabel="Time [s]", ylabel="[pu]", title="I imag out", limits=(xlims..., nothing, nothing))
-        lines!(ax10, ref_measures.time, ref_measures.ii; label="PowerFactory", color=:forestgreen, linewidth=2, alpha=0.7)
-        lines!(ax10, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pii)).u; label="PowerDynamics.jl", color=:forestgreen, linestyle=:dash, linewidth=2)
+        lines!(ax10, ref_measures_pf2.time, ref_measures_pf2.ii; label="PowerFactory", color=:forestgreen, linewidth=2, alpha=0.7)
+        lines!(ax10, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pii)).u; label="PowerDynamics.jl", color=:forestgreen, linestyle=:dash, linewidth=2)
         axislegend(ax10)
 
         fig
@@ -142,50 +142,50 @@ if isdefined(Main, :EXPORT_FIGURES) && Main.EXPORT_FIGURES
 
         # Plot 1: pvr
         ax1 = Axis(fig[1,1]; xlabel="Time [s]", ylabel="[pu]", title="pvr (V real)", limits=(xlims..., nothing, nothing))
-        lines!(ax1, ref_measures.time, ref_measures.ur; label="PowerFactory", color=:blue, linewidth=2, alpha=0.7)
-        lines!(ax1, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pvr)).u; label="Julia", color=:blue, linestyle=:dash, linewidth=2)
+        lines!(ax1, ref_measures_pf2.time, ref_measures_pf2.ur; label="PowerFactory", color=:blue, linewidth=2, alpha=0.7)
+        lines!(ax1, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pvr)).u; label="Julia", color=:blue, linestyle=:dash, linewidth=2)
         axislegend(ax1)
 
         # Plot 2: pvi
         ax2 = Axis(fig[1,2]; xlabel="Time [s]", ylabel="[pu]", title="pvi (V imag)", limits=(xlims..., nothing, nothing))
-        lines!(ax2, ref_measures.time, ref_measures.ui; label="PowerFactory", color=:green, linewidth=2, alpha=0.7)
-        lines!(ax2, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pvi)).u; label="Julia", color=:green, linestyle=:dash, linewidth=2)
+        lines!(ax2, ref_measures_pf2.time, ref_measures_pf2.ui; label="PowerFactory", color=:green, linewidth=2, alpha=0.7)
+        lines!(ax2, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pvi)).u; label="Julia", color=:green, linestyle=:dash, linewidth=2)
         axislegend(ax2)
 
         # Plot 3: V_t
         ax3 = Axis(fig[2,1]; xlabel="Time [s]", ylabel="[pu]", title="V_t (terminal voltage magnitude)", limits=(xlims..., nothing, nothing))
-        lines!(ax3, ref_measures.time, ref_measures.u; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
-        lines!(ax3, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊V_t)).u; label="Julia", color=:purple, linestyle=:dash, linewidth=2)
+        lines!(ax3, ref_measures_pf2.time, ref_measures_pf2.u; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
+        lines!(ax3, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊V_t)).u; label="Julia", color=:purple, linestyle=:dash, linewidth=2)
         axislegend(ax3)
 
         # Plot 4: I_branch
         ax4 = Axis(fig[2,2]; xlabel="Time [s]", ylabel="[pu]", title="I_branch (current magnitude)", limits=(xlims..., nothing, nothing))
-        lines!(ax4, ref_measures.time, ref_measures.i; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
-        lines!(ax4, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊I_measure)).u; label="Julia", color=:red, linestyle=:dash, linewidth=2)
+        lines!(ax4, ref_measures_pf2.time, ref_measures_pf2.i; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax4, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊I_measure)).u; label="Julia", color=:red, linestyle=:dash, linewidth=2)
         axislegend(ax4)
 
         # Plot 5: P_branch
         ax5 = Axis(fig[3,1]; xlabel="Time [s]", ylabel="[pu]", title="P_branch (active power)", limits=(xlims..., nothing, nothing))
-        lines!(ax5, ref_measures.time, ref_measures.p; label="PowerFactory", color=:blue, linewidth=2, alpha=0.7)
-        lines!(ax5, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊P_measure)).u; label="Julia", color=:blue, linestyle=:dash, linewidth=2)
+        lines!(ax5, ref_measures_pf2.time, ref_measures_pf2.p; label="PowerFactory", color=:blue, linewidth=2, alpha=0.7)
+        lines!(ax5, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊P_measure)).u; label="Julia", color=:blue, linestyle=:dash, linewidth=2)
         axislegend(ax5)
 
         # Plot 6: Q_branch
         ax6 = Axis(fig[3,2]; xlabel="Time [s]", ylabel="[pu]", title="Q_branch (reactive power)", limits=(xlims..., nothing, nothing))
-        lines!(ax6, ref_measures.time, ref_measures.q; label="PowerFactory", color=:orange, linewidth=2, alpha=0.7)
-        lines!(ax6, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊Q_measure)).u; label="Julia", color=:orange, linestyle=:dash, linewidth=2)
+        lines!(ax6, ref_measures_pf2.time, ref_measures_pf2.q; label="PowerFactory", color=:orange, linewidth=2, alpha=0.7)
+        lines!(ax6, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊Q_measure)).u; label="Julia", color=:orange, linestyle=:dash, linewidth=2)
         axislegend(ax6)
 
         # Plot 7: pir (terminal current real part)
         ax7 = Axis(fig[4,1]; xlabel="Time [s]", ylabel="[pu]", title="pir (I real)", limits=(xlims..., nothing, nothing))
-        lines!(ax7, ref_measures.time, ref_measures.ir; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
-        lines!(ax7, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pir)).u; label="Julia", color=:red, linestyle=:dash, linewidth=2)
+        lines!(ax7, ref_measures_pf2.time, ref_measures_pf2.ir; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax7, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pir)).u; label="Julia", color=:red, linestyle=:dash, linewidth=2)
         axislegend(ax7)
 
         # Plot 8: pii (terminal current imaginary part)
         ax8 = Axis(fig[4,2]; xlabel="Time [s]", ylabel="[pu]", title="pii (I imag)", limits=(xlims..., nothing, nothing))
-        lines!(ax8, ref_measures.time, ref_measures.ii; label="PowerFactory", color=:teal, linewidth=2, alpha=0.7)
-        lines!(ax8, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊pii)).u; label="Julia", color=:teal, linestyle=:dash, linewidth=2)
+        lines!(ax8, ref_measures_pf2.time, ref_measures_pf2.ii; label="PowerFactory", color=:teal, linewidth=2, alpha=0.7)
+        lines!(ax8, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊pii)).u; label="Julia", color=:teal, linestyle=:dash, linewidth=2)
         axislegend(ax8)
 
         fig
@@ -202,38 +202,38 @@ if isdefined(Main, :EXPORT_FIGURES) && Main.EXPORT_FIGURES
 
         # Plot 1: P_ref
         ax1 = Axis(fig[1,1]; xlabel="Time [s]", ylabel="[pu]", title="P_ref", limits=(xlims..., nothing, nothing))
-        lines!(ax1, ref_pv.time, ref_pv[!, Symbol("repc_Pref")]; label="PowerFactory", color=:blue, linewidth=2, alpha=0.7)
-        lines!(ax1, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊repca₊P_ref)).u; label="Julia", color=:blue, linestyle=:dash, linewidth=2)
+        lines!(ax1, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("repc_Pref")]; label="PowerFactory", color=:blue, linewidth=2, alpha=0.7)
+        lines!(ax1, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊repca₊P_ref)).u; label="Julia", color=:blue, linestyle=:dash, linewidth=2)
         axislegend(ax1)
 
         # Plot 2: Q_ext
         ax2 = Axis(fig[1,2]; xlabel="Time [s]", ylabel="[pu]", title="Q_ext", limits=(xlims..., nothing, nothing))
-        lines!(ax2, ref_pv.time, ref_pv[!, Symbol("repc_Qext")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
-        lines!(ax2, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊repca₊Q_ext)).u; label="Julia", color=:red, linestyle=:dash, linewidth=2)
+        lines!(ax2, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("repc_Qext")]; label="PowerFactory", color=:red, linewidth=2, alpha=0.7)
+        lines!(ax2, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊repca₊Q_ext)).u; label="Julia", color=:red, linestyle=:dash, linewidth=2)
         axislegend(ax2)
 
         # Plot 3: I_pcmd
         ax3 = Axis(fig[2,1]; xlabel="Time [s]", ylabel="[pu]", title="I_pcmd", limits=(xlims..., nothing, nothing))
-        lines!(ax3, ref_pv.time, ref_pv[!, Symbol("reec_Ipcmd")]; label="PowerFactory", color=:green, linewidth=2, alpha=0.7)
-        lines!(ax3, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_pcmd)).u; label="Julia", color=:green, linestyle=:dash, linewidth=2)
+        lines!(ax3, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("reec_Ipcmd")]; label="PowerFactory", color=:green, linewidth=2, alpha=0.7)
+        lines!(ax3, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_pcmd)).u; label="Julia", color=:green, linestyle=:dash, linewidth=2)
         axislegend(ax3)
 
         # Plot 4: I_qcmd
         ax4 = Axis(fig[2,2]; xlabel="Time [s]", ylabel="[pu]", title="I_qcmd", limits=(xlims..., nothing, nothing))
-        lines!(ax4, ref_pv.time, ref_pv[!, Symbol("reec_Iqcmd")]; label="PowerFactory", color=:orange, linewidth=2, alpha=0.7)
-        lines!(ax4, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_qcmd)).u; label="Julia", color=:orange, linestyle=:dash, linewidth=2)
+        lines!(ax4, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("reec_Iqcmd")]; label="PowerFactory", color=:orange, linewidth=2, alpha=0.7)
+        lines!(ax4, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊reecb₊I_qcmd)).u; label="Julia", color=:orange, linestyle=:dash, linewidth=2)
         axislegend(ax4)
 
         # Plot 5: I_pout
         ax5 = Axis(fig[3,1]; xlabel="Time [s]", ylabel="[pu]", title="I_pout", limits=(xlims..., nothing, nothing))
-        lines!(ax5, ref_pv.time, ref_pv[!, Symbol("regc_Ip")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
-        lines!(ax5, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_p)).u; label="Julia", color=:purple, linestyle=:dash, linewidth=2)
+        lines!(ax5, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("regc_Ip")]; label="PowerFactory", color=:purple, linewidth=2, alpha=0.7)
+        lines!(ax5, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_p)).u; label="Julia", color=:purple, linestyle=:dash, linewidth=2)
         axislegend(ax5)
 
         # Plot 6: I_qout
         ax6 = Axis(fig[3,2]; xlabel="Time [s]", ylabel="[pu]", title="I_qout", limits=(xlims..., nothing, nothing))
-        lines!(ax6, ref_pv.time, ref_pv[!, Symbol("regc_Iq")]; label="PowerFactory", color=:teal, linewidth=2, alpha=0.7)
-        lines!(ax6, ts, sol_pv(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_q)).u; label="Julia", color=:teal, linestyle=:dash, linewidth=2)
+        lines!(ax6, ref_pv_pf2.time, ref_pv_pf2[!, Symbol("regc_Iq")]; label="PowerFactory", color=:teal, linewidth=2, alpha=0.7)
+        lines!(ax6, ts, sol_pv_pf2(ts, idxs=VIndex(:GEN1, :PV₊regca₊I_q)).u; label="Julia", color=:teal, linestyle=:dash, linewidth=2)
         axislegend(ax6)
 
         fig
@@ -250,8 +250,8 @@ include(joinpath(@__DIR__, "open_loop_utils.jl"))
 include(joinpath(@__DIR__, "prescribed_pv_test_2bus.jl"))
 
 # Spaltennamen in das von prescribed_pv_test_2bus erwartete Format umbenennen
-ref_inputs_2bus = let
-    df = copy(ref_measures)
+ref_inputs_pf2 = let
+    df = copy(ref_measures_pf2)
     rename!(df,
         :ur    => :pvr,
         :ui    => :pvi,
@@ -267,8 +267,8 @@ ref_inputs_2bus = let
 end
 
 res_presc = prescribed_pv_test_2bus(
-    ref_inputs_2bus;
-    obs_df = ref_pv,
+    ref_inputs_pf2;
+    obs_df = ref_pv_pf2,
 )
 
 regc_keys        = ["regc_Iqr", "regc_o2", "regc_o3", "regc_dIq", "regc_Qgen", "regc_Vtfiltlim"]
