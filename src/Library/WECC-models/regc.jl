@@ -177,69 +177,76 @@ end
 #Power Factory REGC_C WECC Generator-Converter Model
 @mtkmodel regc_c_pf begin
     @structural_parameters begin
-        #L_vplsw=false
+        RateFlag=false
     end
     @parameters begin
         I_qrmax, [description="Maximum rate-of-change of reactive current (pu/s)"]
         I_qrmin, [description="Minimum rate-of-change of reactive current (pu/s)"]
-        #=
-        T_gp, [description="Inverter current regulator lag time constant for active current (s)"]
-        T_gq, [description="Inverter current regulator lag time constant for reactive current (s)"]
-        T_fltr, [description="Terminal voltage filter (for LVPL) time constant (s)"]
-        Brkpt, [description="LVPL breakpoint (pu voltage)"]
-        Zerox, [description="LVPL zero crossing (pu voltage)"]
-        lvpnt0, [description=""]
-        lvpnt1, [description=""]
-        L_vpl1, [description="LVPL gain breakpoint (pu current on mbase / pu voltage)"]
-        rrpwr, [description="Active current up-ramp rate limit on voltage recovery (pu/s)"]
-        V_0lim, [description=""]
-        K_hv, [description=""]
-        I_0lim, [description=""]
-        =#
+        Kip, [description=""]
+        Kii, [description=""]
+        x_pi_q, [description=""]
+        x_phifef, [description=""]
+        Kppll, [description=""]
+        Kipll, [description=""]
+        Vpllfrz, [description=""]
+        x0, [description=""]
+        x1, [description=""]
+        wmin, [description=""]
+        wmax, [description=""]
+        Tfltr, [description=""]
+        xfltr, [description=""]
+        rrpwr, [description=""]
+        x_pi_p, [description=""]
+        re, [description=""]
+        xe, [description=""]
+        Te, [description=""]
+        x_lpf_d, [description=""]
+        x_lpf_q, [description=""]
     end
     @components begin
+        #inputs
+        Qgen0 = RealInput(guess=0)
+        Iqcmd = RealInput(guess=0)
+        ir = RealInput(guess=0)
+        ii = RealInput(guess=0)
+        ur = RealInput(guess=0)
+        ui = RealInput(guess=0)
+        fref = RealInput(guess=0)
+        Fnom = RealInput(guess=0)
+        Vt = RealInput(guess=0)
+        Ipcmd = RealInput(guess=0)
+        is_blocked = RealInput(guess=0)
+        #outputs
+        Iqout = RealOutput(guess=0)
+        Ipout = RealOutput(guess=0)
+        ur_ref_out = RealOutput(guess=0)
+        ui_ref_out = RealOutput(guess=0)
         #=
-        # inputs
-        Vt_in = RealInput(guess=1) #TODO anscheinend gefilterters V_t schon! (PT1 Glied aus reec_b(_1))
-        V_tfiltlim = RealInput(guess=1) #TODO von außen eingeben! (aus reec_b) oder manuell hier berechnen?
-        Iqcmd_in = RealInput(guess=-0.056656797)
-        Ipcmd_in = RealInput(guess=0.015)
-        # outputs
-        Iqout = RealOutput(guess=0.056656797)
-        Ipout = RealOutput(guess=0.015000018)
-
         simpleLag = PowerDynamics.Library.SimpleLag(K=1, T=T_fltr, guess=1)
         SimpleLagLim = PowerDynamics.Library.SimpleLagLim(K=1, T=T_gq, outMin=I_qrmin, outMax=I_qrmax, guess=0.056656797)
         SimpleLag_2uplims = PowerDynamics.Library.SimpleLag_2MaxLims(K=1, T=T_gp, doutMax=rrpwr, guess=0.015)
         =#
-        Iqcmd_in = RealInput(guess=-0.056656797)
-        Ipcmd_in = RealInput(guess=0.015)
-        Q_gen0 = RealInput(guess=0)
     end
     @variables begin
-        #=
-        I_qrsum(t), [guess=1.9317881e-14, description=""]
-        I_qrlim(t), [guess=1.9317881e-14, description=""]
-        I_qr(t), [guess=0.056656797, description=""]
-        o2(t), [guess=0.056656797, description=""]
-        Hi_V_flag(t), [guess=false, description="If Vt<=V_0lim -> 0 ;  if Vt>V_0lim -> 1"]
-        o3(t), [guess=0, description=""]
-        ΔV(t), [guess=-0.2, description=""]
-        I_hv(t), [guess=-0.14, description=""]
-        I_hvlim(t), [guess=0, description=""]
-        Q_gen(t), [guess=0.056656797, description=""]
-        I_q(t), [guess=0.056656797, description="I_q after inverter current regulator with rate limits"]
-        ΔI_q(t), [guess=0.056656797, description=""]
-        ΔI_pr(t), [guess=-7.359854e-12, description=""]
-        I_pr(t), [guess=0.015, description=""]
-        ΔI_prlim(t), [guess=-7.359854e-12, description=""]
-        I_pg(t), [guess=0.015, description=""]
-        Vt_scaled(t), [guess=1, description=""]
-        P_gen(t), [guess=0.015, description=""]
-        I_p(t), [guess=0.015, description="I_p after inverter current regulator with limits"]
-        V(t), [guess=1, description="V_t after filter"]
-        I_lvpl(t), [guess=1.22, description="current resulting from low voltage power logic"]
-        =#
+        iq_ref(t), [guess=0, description=""]
+        ur1(t), [guess=0, description=""]
+        ui1(t), [guess=0, description=""]
+        dphi_ref(t), [guess=0, description=""]
+        iq(t), [guess=0, description=""]
+        iqerr(t), [guess=0, description=""]
+        iqref(t), [guess=0, description=""]
+        id(t), [guess=0, description=""]
+        Vt_fltr(t), [guess=0, description=""]
+        V_or_one(t), [guess=1, description=""]
+        Ipcmd_or_ppcmd(t), [guess=0, description=""]
+        ip_or_pp(t), [guess=0, description=""]
+        id_ref(t), [guess=0, description=""]
+        iderr(t), [guess=0, description=""]
+        idref(t), [guess=0, description=""]
+        ur2(t), [guess=0, description=""]
+        ui2(t), [guess=0, description=""]
+        ur_ref(t), [guess=0, description=""]
+        ui_ref(t), [guess=0, description=""]
     end
     @equations begin
         I_qr ~ ifelse(Q_gen0.u<-0.000001, -clamp(I_qcmd.u, I_qrmin, 99999), ifelse(Q_gen0.u>0.000001, -clamp(I_qcmd.u, -99999, I_qrmax), -I_qcmd.u))
@@ -273,8 +280,8 @@ end
         I_p ~ P_gen/V_tfiltlim.u
 
         #outputs
-        Iqout.u ~ I_q
-        Ipout.u ~ I_p
+        Iqout.u ~ iqref
+        Ipout.u ~ idref
     end
 end
 
