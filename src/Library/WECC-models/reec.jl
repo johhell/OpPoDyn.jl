@@ -383,9 +383,23 @@ end
         Vflag = false
         QFlag = false
         PqFlag = false
+        # NOTE (2026-08-17): PFlag corresponds to OpenIPSL's `pflag`
+        # (BaseREECA.mo), which is a SEPARATE parameter from `pfflag`. In
+        # REECA1.mo it drives only
+        #     GeneratorSpeed.y = if pflag then Wg else 1
+        # i.e. whether the active power reference is scaled by the generator
+        # speed. Until now this branch was (incorrectly) keyed on PfFlag here,
+        # so the two independent Modelica flags were collapsed into one. That
+        # stayed invisible for the validated baseline because WindPlant.mo
+        # derives both as false there (QFunctionality=4 -> pfflag=false,
+        # TOscillation=0 -> pflag=false), but it would silently diverge from
+        # the reference in any case with pfflag=true and pflag=false.
+        # Default false = previous behaviour for the default PfFlag=false, and
+        # matches the reference model.
+        PFlag = false
     end
     @parameters begin
-        V_0, [description=""]
+        V_0, [description="Initial/nominal terminal voltage (pu); used as Vmod's V0 when !PfFlag && !Vflag && QFlag, see OpenIPSL REECA1.mo"]
         V_dip, [description="Low voltage condition trigger voltage (pu)"]
         V_up, [description="High voltage condition trigger voltage (pu)"]
         T_rv, [description="Terminal bus voltage filter time constant (s)"]
@@ -402,7 +416,7 @@ end
         V_max, [description="Maximum voltage at inverter terminal bus (pu)"]
         K_qp, [description="Local Q regulator proportional gain (pu/pu)"]
         K_qi, [description="Local Q regulator integral gain (pu/pu-s)"]
-        V_bias, [description=""]
+        V_bias, [description="User-defined reference/bias on the inner-loop voltage control (pu); only used directly when PfFlag=true, otherwise overridden by Vmod, see OpenIPSL REECA1.mo"]
         K_vp, [description="Local voltage regulator proportional gain (pu/pu)"]
         K_vi, [description="Local voltage regulator integral gain (pu/pu-s)"]
         I_max, [description="Maximum apparent current (pu on mbase)"]
@@ -527,7 +541,34 @@ end
             V_con ~ V_lima
         end
         if !Vflag && QFlag
-            V_con ~ Q_con + V_bias
+            # NOTE (2026-08-13): OpenIPSL's REECA1.mo does NOT feed the raw V_bias
+            # parameter into V_con for this flag combination. Instead it computes
+            # (REECA1.mo, ~line 184):
+            #   Vmod = if pfflag==false and vflag==false and qflag==true
+            #            then V0 - PfFlag.y   # PfFlag.y ≡ Qext ≡ our Q_con
+            #            else Vbias
+            #   V_con = Q_con + Vmod
+            # Plugging Vmod into V_con for the !PfFlag branch gives
+            # V_con = Q_con + (V_0 - Q_con) ≡ V_0 -- Q_con cancels analytically, so
+            # we write the reduced form directly.
+            #
+            # Previously this branch read `V_con ~ Q_con + V_bias` with V_bias fixed
+            # at 0, i.e. it assigned a reactive-power-scaled value (~-0.05 pu)
+            # directly to a voltage-scaled target (expected ~1 pu), which structurally
+            # clamped V_limb at V_min. That was the real, model-level root cause of
+            # WT4B's QFlag=true initialization failure (confirmed by cross-checking
+            # against a validated OpenModelica reference run: with this fix, WT4B's
+            # reeca.s_V converges to -0.056657, matching the reference's -0.056658 to
+            # 5 decimals, with zero overrides needed). WT4B still needs
+            # `subalg=LevenbergMarquardt()` to initialize at all -- that is a separate,
+            # pre-existing default-solver robustness issue affecting WT4B regardless
+            # of QFlag (confirmed: baseline QFlag=false also fails with the default
+            # solver), not something this fix changes or depends on.
+            if !PfFlag
+                V_con ~ V_0
+            else
+                V_con ~ Q_con + V_bias
+            end
         end
         if QFlag
             V_limb ~ clamp(V_con, V_min, V_max)
@@ -546,7 +587,9 @@ end
         I_sum ~ I_qcon + I_qinj
         I_qcmd ~ clamp(I_sum, I_qmin, I_qmax)
         #p-phase current
-        if PfFlag
+        # NOTE (2026-08-17): keyed on PFlag (OpenIPSL `pflag`), NOT on PfFlag
+        # (`pfflag`) -- see the comment on the structural parameters above.
+        if PFlag
             P_in ~ Wg.u * Pref_in.u
         else
             P_in ~ Pref_in.u
@@ -701,6 +744,27 @@ end
             V_con ~ V_lima
         end
         if !Vflag && QFlag
+            # NOTE (2026-08-13, OPEN ISSUE): `V_con ~ Q_con` was checked against
+            # PowerFactory's REEC_B implementation and confirmed CORRECT -- this is
+            # NOT the same bug as reec_a's missing Vmod (do not "fix" this again
+            # without new evidence). Despite the equation being right, the flag
+            # combination Vflag=false + QFlag=true on WECC_large_PV_pf initializes
+            # with a much worse residual (~0.11) than typical clean solves (~1e-5),
+            # even though it still passes the network's actual tol=1e0 threshold.
+            # Investigated and RULED OUT as causes: (1) K_vp=0 degeneracy (tested
+            # K_vp=1e-10/1e-6/1e-2 -- residual identical to 14 digits, unlike the
+            # analogous reec_c/BESS case where this was the actual fix); (2)
+            # saturation/clamping at this specific operating point (tested Q from
+            # -0.3333 up to 1.0, i.e. inside/outside the V_min/V_max clamp band --
+            # residual got WORSE (up to ~8.7), not better, moving away from the
+            # original point); (3) obvious structural degeneracy (mtkcompile
+            # comparison against the working Vflag=true,QFlag=false baseline shows
+            # only the expected extra PI_freeze_var state, nothing resembling the
+            # reec_c K_vp*s_V pattern). Root cause still unknown -- deprioritized,
+            # not further investigated per user decision. PowerFactory apparently
+            # initializes this combination cleanly, so this is likely solvable;
+            # revisit with a per-equation residual breakdown if this becomes
+            # relevant again.
             V_con ~ Q_con
         end
         if QFlag

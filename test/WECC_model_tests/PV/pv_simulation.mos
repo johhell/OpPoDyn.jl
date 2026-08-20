@@ -35,7 +35,9 @@ filterSimulationResults(
         "pV.RenewableGenerator.p.ii",
         "pV.RenewableGenerator.p.ir",
         "pV.RenewableGenerator.p.vi",
-        "pV.RenewableGenerator.p.vr"
+        "pV.RenewableGenerator.p.vr",
+        "pV.RenewableGenerator.IP.y",
+        "pV.RenewableGenerator.IOLIM.y"
     }
       //addHeader=false
 );
@@ -70,6 +72,8 @@ filterSimulationResults(
         "pV.RenewableGenerator.p.ir",
         "pV.RenewableGenerator.p.vi",
         "pV.RenewableGenerator.p.vr",
+        "pV.RenewableGenerator.IP.y",
+        "pV.RenewableGenerator.IOLIM.y",
 
         // --- Additional
         "GEN1.v", "GEN1.angle",

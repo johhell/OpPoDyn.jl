@@ -1,0 +1,53 @@
+// Flag test case 2: "ALL_flipped_except_Vflag" -- same as test case 1, but
+// Vflag stays at its default (false), and freqFlag is additionally flipped
+// to true (this combination -- QFlag=true, Vflag=false, freqFlag=true --
+// initializes and simulates cleanly, unlike combining freqFlag=true with
+// Vflag=true, see comment in plantmodels.jl).
+loadFile("C:/Users/smmywael/Downloads/OpenIPSL-master/OpenIPSL-master/OpenIPSL/package.mo");
+
+simulate(
+  OpenIPSL.Tests.Renewable.PSSE.PVPlant(
+    pV(
+      RenewableGenerator(Lvplsw=false),
+      RenewableController(pfflag=true, vflag=false, qflag=true, pqflag=true),
+      PlantController(RefFlag=true, Vcompflag=true, freqFlag=true)
+    )
+  ),
+  resultFile="PVPlant_ALLflippedExceptVflag_res.mat"
+);
+
+filterSimulationResults(
+  "PVPlant_ALLflippedExceptVflag_res.mat",
+  "modelica_results_ALLflippedExceptVflag.csv",
+  {
+    // --- Kern-Set ---
+    "pV.PlantController.Pref",
+    "pV.PlantController.Qext",
+    "pV.RenewableController.Qgen",
+    "pV.RenewableController.Pe",
+    "pV.RenewableController.Vt",
+    "pV.RenewableController.Ipcmd",
+    "pV.RenewableController.Iqcmd",
+    "pV.RenewableController.IPMAX.y",
+    "pV.RenewableController.IPMIN.y",
+    "pV.RenewableController.IQMAX.y",
+    "pV.RenewableController.IQMIN.y",
+    "pV.RenewableGenerator.LVPL.y",
+    "pV.RenewableGenerator.p.ii",
+    "pV.RenewableGenerator.p.ir",
+    "pV.RenewableGenerator.p.vi",
+    "pV.RenewableGenerator.p.vr",
+    "pV.RenewableGenerator.IP.y",
+    "pV.RenewableGenerator.IOLIM.y",
+
+    // --- Flag-spezifisch (QFlag; Vflag&&QFlag NICHT aktiv in diesem Testfall) ---
+    "pV.RenewableController.limiter3.y",
+    "pV.RenewableController.variableLimiter2.y",
+
+    // --- Flag-spezifisch (RefFlag, VcombFlag, freqFlag) ---
+    "pV.PlantController.add2.y",
+    "pV.PlantController.add3.u",
+    "pV.PlantController.VCFLAG.y",
+    "pV.PlantController.REFFLAG.y"
+  }
+);

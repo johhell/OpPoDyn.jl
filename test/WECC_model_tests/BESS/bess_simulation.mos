@@ -37,7 +37,9 @@ filterSimulationResults(
         "bESS.RenewableGenerator.p.ii",
         "bESS.RenewableGenerator.p.ir",
         "bESS.RenewableGenerator.p.vi",
-        "bESS.RenewableGenerator.p.vr"
+        "bESS.RenewableGenerator.p.vr",
+        "bESS.RenewableGenerator.IP.y",
+        "bESS.RenewableGenerator.IOLIM.y"
     }
       //addHeader=false
 );
@@ -74,6 +76,8 @@ filterSimulationResults(
         "bESS.RenewableGenerator.p.ir",
         "bESS.RenewableGenerator.p.vi",
         "bESS.RenewableGenerator.p.vr",
+        "bESS.RenewableGenerator.IP.y",
+        "bESS.RenewableGenerator.IOLIM.y",
 
         // --- Additional
         "GEN1.v", "GEN1.angle",

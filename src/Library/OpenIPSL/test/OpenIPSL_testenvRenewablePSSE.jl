@@ -93,7 +93,14 @@ function OpenIPSL_RePSSE_pv(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwtol=
 end
 
 
-function OpenIPSL_RePSSE_bess(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwtol=1e0)
+# `subalg`: optional per-component init solver for the BESS bus (VIndex(1)).
+# The default polyalgorithm handles the baseline and most flag combinations, but
+# a few need a different one -- e.g. PfFlag=true together with Vflag=false and
+# QFlag=true fails with InternalLinearSolveFailed (default) and MaxIters
+# (LevenbergMarquardt), while TrustRegion() converges cleanly. Compare
+# OpenIPSL_RePSSE_wt, which hardcodes LevenbergMarquardt because WT4B needs it
+# for every combination; here it is opt-in since only some combinations do.
+function OpenIPSL_RePSSE_bess(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwtol=1e0, subalg=nothing)
     # copy constructor and set vidxs
     bus1 = VertexModel(_bus1, vidx=1, name=:GEN1)
 
@@ -172,12 +179,14 @@ function OpenIPSL_RePSSE_bess(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwto
     # pfnw = powerflow_model(nw)
     # pfs = solve_powerflow(pfnw)
 
+    subalg_kw = isnothing(subalg) ? (;) : (; subalg = Dict(VIndex(1) => subalg))
+
     if just_init
-        s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol=Inf, nwtol=Inf)
+        s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol=Inf, nwtol=Inf, subalg_kw...)
         return s0
     end
 
-    s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol, nwtol)
+    s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol, nwtol, subalg_kw...)
     #dump_initial_state(bus1)
     init_residual(bus1; verbose=true)
 
@@ -187,7 +196,13 @@ function OpenIPSL_RePSSE_bess(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwto
     sol
 end
 
-function OpenIPSL_RePSSE_wt(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwtol=1e0)
+# `subalg`: per-component init solver for the WT bus (VIndex(1)). Defaults to
+# LevenbergMarquardt, which the baseline and most flag combinations need (see
+# the note further down). Pass `subalg=nothing` to fall back to the package
+# default polyalgorithm -- required e.g. for PfFlag=true + Vflag=true +
+# QFlag=true + PqFlag=true + VcombFlag=false, where LM returns MaxIters while
+# the polyalg converges cleanly.
+function OpenIPSL_RePSSE_wt(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwtol=1e0, subalg=LevenbergMarquardt())
     # copy constructor and set vidxs
     bus1 = VertexModel(_bus1, vidx=1, name=:GEN1)
 
@@ -270,14 +285,19 @@ function OpenIPSL_RePSSE_wt(_bus1; ω_b=2π*50, just_init=false, tol=1e0, nwtol=
     # network -> repca.Q_branch -> reeca) with no intervening dynamic state.
     # The default Newton-type init solver cannot resolve this loop from the
     # guesses regardless of maxiters; LevenbergMarquardt (damped least
-    # squares) converges reliably, so use it for the WT bus only.
-    subalg = Dict(VIndex(1) => LevenbergMarquardt())
+    # squares) converges reliably, so use it for the WT bus only -- hence the
+    # LevenbergMarquardt default on the `subalg` keyword. It is a keyword (not
+    # hardcoded) because it is not universally the right choice: with
+    # PfFlag=true the loop above is broken (Q_con comes from the PF branch
+    # instead of Qext_in) and LM then returns MaxIters, while the default
+    # polyalgorithm converges -- pass `subalg=nothing` for those cases.
+    subalg_kw = isnothing(subalg) ? (;) : (; subalg = Dict(VIndex(1) => subalg))
 
     if just_init
-        s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol=Inf, nwtol=Inf, subalg)
+        s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol=Inf, nwtol=Inf, subalg_kw...)
         return s0
     end
-    s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol, nwtol, subalg)
+    s0 = initialize_from_pf!(nw; subverbose=[VIndex(1)], tol, nwtol, subalg_kw...)
     #dump_initial_state(bus1)
     init_residual(bus1; verbose=true)
 

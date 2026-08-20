@@ -49,13 +49,38 @@
         Qext_out = RealOutput(guess=-0.056656797)
 
         #building blocks
+        # NOTE (2026-08-14): simpleLag3 (V-measurement filter, produces V_fltr
+        # -> ΔV -> ΔQ_in when RefFlag=true) previously used T=T_lag. Confirmed
+        # wrong against OpenIPSL's REPCA1.mo: both simpleLag2 (Q-filter) AND
+        # simpleLag3 (V-filter) use the SAME `Tfltr` there ("Voltage or
+        # reactive power measurement filter time constant" -- the parameter's
+        # own description already says it's for both). T_lag is a separate,
+        # unrelated constant only used for the P-order output filter
+        # (simpleLag1) inside the freqFlag branch below. Found via
+        # PV_flagtests.jl's QFlagFalseRefFlag test case: with WECC_large_PV's
+        # T_fltr=0.02 vs T_lag=0.1, this bug made ΔQ_in/Q_ext (and, once QFlag
+        # =false stopped masking it, Iqcmd/pii/pir/etc.) diverge from the
+        # OpenModelica reference whenever RefFlag=true. Coincidentally
+        # harmless for WECC_BESS (T_fltr and T_lag both 0.02 there), but
+        # WECC_WT_4B has the same T_fltr=0.02/T_lag=0.1 mismatch as PV.
         simpleLag2 = PowerDynamics.Library.SimpleLag(K=1, T=T_fltr, guess=-0.056656813)
-        simpleLag3 = PowerDynamics.Library.SimpleLag(K=1, T=T_lag, guess=0.99886686)
+        simpleLag3 = PowerDynamics.Library.SimpleLag(K=1, T=T_fltr, guess=0.99886686)
         leadLag = PowerDynamics.Library.LeadLag(K=1, T1=T_ft, T2=T_fv, guess=-0.056656797)
         deadband = PowerDynamics.Library.DeadZone(uMax=dbd_up, uMin=dbd_dn)
+        # NOTE: these three components must each live in their OWN `if freqFlag`
+        # block (not combined into one). Combining >=2 conditionally-declared
+        # components in the same `if` block hits a ModelingToolkit `@mtkmodel`
+        # bug (`UndefVarError: <component> not defined`) when referenced from a
+        # matching `if freqFlag` block in `@equations` below -- confirmed via a
+        # minimal reproduction, independent of component names/types. A single
+        # conditional component per `if` block works fine.
         if freqFlag
             simpleLag = PowerDynamics.Library.SimpleLag(K=1, T=T_p, guess=0.015)
+        end
+        if freqFlag
             simpleLag1 = PowerDynamics.Library.SimpleLag(K=1, T=T_lag, guess=0.015)
+        end
+        if freqFlag
             f_deadband = PowerDynamics.Library.DeadZone(uMax=fdbd2, uMin=fdbd1)
         end
     end
@@ -204,10 +229,22 @@ end
         leadLag = PowerDynamics.Library.LeadLag(K=1, T1=T_ft, T2=T_fv, guess=-0.30027)
         deadband = PowerDynamics.Library.DeadZone(uMax=dbd_up, uMin=dbd_dn)
         PI_lim_Q = PowerDynamics.Library.P_I_Lim_freeze(K_p=K_p, K_i=K_i, T=1, outMin=Q_min, outMax=Q_max, guess=-0.30027, guessx=-0.30027)
+        # NOTE: each of these four components must live in its OWN `if freqFlag`
+        # block (not combined into one) -- see the identical fix + explanation
+        # in `repc_a` above (ModelingToolkit `@mtkmodel` bug: combining >=2
+        # conditionally-declared components in the same `if` block fails to
+        # compile when referenced from a matching `if freqFlag` block in
+        # `@equations`).
         if freqFlag
             simpleLag = PowerDynamics.Library.SimpleLag(K=1, T=T_p, guess=0.800721)
+        end
+        if freqFlag
             simpleLag1 = PowerDynamics.Library.SimpleLag(K=1, T=T_lag, guess=0.800721)
+        end
+        if freqFlag
             f_deadband = PowerDynamics.Library.DeadZone(uMax=fdbd2, uMin=fdbd1)
+        end
+        if freqFlag
             PI_lim_P = PowerDynamics.Library.P_I_Lim(K_p=K_pg, K_i=K_ig, T=1, outMin=P_min, outMax=P_max, guess=0.800721, guessx=0.800721)
         end
     end

@@ -2,6 +2,37 @@
 # default parameter taken from OpenIPSL Examples
 
 @mtkmodel WECC_large_PV begin
+    # NOTE (2026-08-13): flags below exposed as structural parameters
+    # (forwarded to the sub-components, same defaults as before) so they can
+    # be flipped from outside without touching this file, e.g. for the
+    # flag-robustness sweep that found and led to fixing WT4B's QFlag=true
+    # initialization bug (missing Vmod equation in reec_a, see reec.jl).
+    # NOTE (2026-08-13, OPEN ISSUE): `freqFlag` was missing from the flag list
+    # above until now (it was hardcoded `freqFlag=false` inside the repca(...)
+    # call further down, not forwarded) -- now exposed and forwarded like the
+    # others. Flagged and fixed per user request during flag-validation-test
+    # planning (see PV_flagtests.jl design). Combined-flag testing found:
+    # `Vflag=true && QFlag=true && freqFlag=true` simultaneously FAILS to
+    # initialize (`InternalLinearSolveFailed`), even after applying the known
+    # freqFlag=true fix (pinning `repca.P_e` via default_overrides, see BESS's
+    # freq_test_BESS.jl) -- that pin alone is not sufficient here, unlike for
+    # BESS. Root cause not further investigated (deprioritized per user
+    # decision): `reecb`'s `K_vp=0` (same degeneracy pattern as the BESS
+    # QFlag=true fix, see reec_c/K_vp comment in this file) is a plausible
+    # additional contributor on top of the P_e issue, since this combo also
+    # activates QFlag's inner voltage-current PI loop. `freqFlag=true` alone,
+    # and `freqFlag=true` combined with everything except `Vflag=true`, both
+    # initialize and simulate cleanly.
+    @structural_parameters begin
+        L_vplsw = true
+        PfFlag = false
+        Vflag = false
+        QFlag = false
+        PqFlag = false
+        RefFlag = false
+        VcombFlag = false
+        freqFlag = false
+    end
     @components begin
         terminal=Terminal()
         regca = regc_a(
@@ -18,7 +49,7 @@
             lvpnt0 = 0.4,
             lvpnt1 = 0.8,
             I_0lim = -1.3,
-            L_vplsw = true)
+            L_vplsw = L_vplsw)
         reecb = Library.reec_b(
             V_dip   = -99,
             V_up    = 99,
@@ -45,10 +76,10 @@
             P_max   = 1.0,
             dP_min  = -99,
             dP_max  = 99,
-            PqFlag  = false,
-            QFlag   = false,
-            PfFlag  = false,
-            Vflag   = false)
+            PqFlag  = PqFlag,
+            QFlag   = QFlag,
+            PfFlag  = PfFlag,
+            Vflag   = Vflag)
         repca = Library.repc_a(
             K_p        = 18,
             K_i        = 5,
@@ -79,9 +110,9 @@
             D_up       = 0.0,
             P_plantref = 0.015,
             freq_ref   = 60.0,
-            RefFlag    = false,
-            VcombFlag  = false,
-            freqFlag   = false,
+            RefFlag    = RefFlag,
+            VcombFlag  = VcombFlag,
+            freqFlag   = freqFlag,
             p_0        = 0.015)
         f = Blocks.Constant(k=60.0)
         Vref = Blocks.Constant(k=1.0)
@@ -121,6 +152,18 @@
         δ_v ~ atan(terminal.u_i, terminal.u_r)
         regca.Vt_in.u ~ V_t
         reecb.Vt_in.u ~ V_t
+        # NOTE (2026-08-18): the sign convention here is CORRECT and was
+        # verified, do not "fix" it. PowerDynamics' `terminal` uses the
+        # INJECTION convention: u·i > 0 means power flowing INTO the grid.
+        # Proof: `ConstantYLoad` sets `iload = -Y*(u_r + im*u_i)`, so a
+        # consuming load (G>0) has u·i = -G*|V|^2 < 0; `pfPQ` is documented as
+        # "power injections" and the 9-bus tests give loads pfPQ(P=-1.25).
+        # (`PQLoad`'s "Active Power demand" description is misleading -- its
+        # current equation I = conj(S/V) means it INJECTS Pset.)
+        # With that, `pir ~ -terminal.i_r` maps to OpenIPSL's PwPin, whose
+        # `flow` current is positive INTO the component -- which is why pir/pii
+        # match Modelica's p.ir/p.ii exactly, and P_gen = -(pvr*pir+pvi*pii)
+        # comes out positive for generation, matching Modelica's Pe.
         pii ~ - terminal.i_i
         pir ~ - terminal.i_r
         pvr ~ terminal.u_r
@@ -160,6 +203,31 @@ end
 
 
 @mtkmodel WECC_BESS begin
+    @structural_parameters begin
+        # NOTE (2026-08-17): this was briefly changed to `true` on the assumption
+        # that BESSPlant.mo sets fflag=true -- that was WRONG. The .mo file had
+        # already been edited to carry a flag-test scenario when it was read, so
+        # it showed a scenario value, not the reference default. Reverted.
+        # Both settings match the validated reference equally well anyway
+        # (measured P_ref RMS: 0.0 with false, 2.85e-6 with true), because the
+        # infinite bus holds the frequency at exactly 50 Hz and Modelica's Pref
+        # then stays constant at 0.015 -- the same value the freqFlag=false
+        # branch (P_ref ~ p_0) produces. So this is unobservable here either way;
+        # `false` is kept as the validated status quo. Note that the OpenIPSL
+        # library default in BaseREPC.mo IS fflag=true, but the plant wrappers
+        # (PV.mo/BESS.mo/Wind.mo) derive it from PFunctionality and the test
+        # models override it, so the library default is not what the references
+        # were generated with.
+        freqFlag = false  # forwarded to repca; enables repc_a's frequency-droop branch
+        # NOTE (2026-08-13, see WECC_large_PV): flags exposed as structural parameters.
+        L_vplsw = true
+        PfFlag = false
+        Vflag = false
+        QFlag = false
+        PqFlag = false
+        RefFlag = false
+        VcombFlag = true
+    end
     @components begin
         terminal=Terminal()
         regca = regc_a(
@@ -176,7 +244,7 @@ end
             lvpnt0 = 0.05,
             lvpnt1 = 0.2,
             I_0lim = -1.3,
-            L_vplsw = true)
+            L_vplsw = L_vplsw)
         reecc = Library.reec_c(
             V_dip   = -99,
             V_up    = 99,
@@ -194,7 +262,21 @@ end
             V_max   = 1.1,
             K_qp    = 0,
             K_qi    = 1,
-            K_vp    = 0,
+            # NOTE (2026-08-13): K_vp=0 exactly (the original/documented value)
+            # makes the term `K_vp*s_V` in reec_c's inner voltage-current loop
+            # (I_in ~ K_vp*ΔV + s_V) structurally present but numerically zero,
+            # which gives QFlag=true an almost-but-not-quite-singular Jacobian:
+            # the default (non-regularized) NLLS solver fails with
+            # InternalLinearSolveFailed even though a solution exists. Tested
+            # K_vp=1e-10 and K_vp=1e-12 first (as close to the original 0 as
+            # possible) -- both still fail identically, i.e. the degeneracy
+            # isn't fixed by "small enough", only by "nonzero enough" for this
+            # solver's conditioning. K_vp=1e-6 (tested, PASS, residual ~1.5e-5,
+            # matching a LevenbergMarquardt reference solve) is used instead:
+            # negligible relative to K_vi=1 and the model's other gains, so the
+            # closed-loop dynamics are unaffected, but large enough to keep the
+            # default solver's Jacobian well-conditioned during initialization.
+            K_vp    = 1e-6,
             K_vi    = 1,
             I_max   = 1.11,
             T_iq    = 0.017,
@@ -207,10 +289,10 @@ end
             T_char = 999,
             SOCmin = 0.2,
             SOCmax = 0.8,
-            PfFlag  = false,
-            Vflag   = false,
-            QFlag   = false,
-            PqFlag  = false)
+            PfFlag  = PfFlag,
+            Vflag   = Vflag,
+            QFlag   = QFlag,
+            PqFlag  = PqFlag)
         repca = Library.repc_a(
             K_p        = 18,
             K_i        = 5,
@@ -242,9 +324,9 @@ end
             P_plantref = 0.015, #from powerflow
             freq_ref   = 50.0,
             p_0        = 0.015,
-            RefFlag    = false,
-            VcombFlag  = true,
-            freqFlag   = false)
+            RefFlag    = RefFlag,
+            VcombFlag  = VcombFlag,
+            freqFlag   = freqFlag)
         f = Blocks.Constant(k=50.0)
         Vref = Blocks.Constant(k=1.0)
         Qref = Blocks.Constant(k=-0.056658)
@@ -290,6 +372,7 @@ end
         δ_v ~ atan(terminal.u_i, terminal.u_r)
         regca.Vt_in.u ~ V_t
         reecc.Vt_in.u ~ V_t
+        # NOTE: sign convention verified correct -- see WECC_large_PV.
         pii ~ - terminal.i_i
         pir ~ - terminal.i_r
         pvr ~ terminal.u_r
@@ -331,6 +414,21 @@ end
 
 
 @mtkmodel WECC_WT_4B begin
+    # NOTE (2026-08-13, see WECC_large_PV): flags exposed as structural parameters.
+    # NOTE (2026-08-14): freqFlag was missing here too (same gap as WECC_large_PV
+    # had, see its comment above) -- now exposed and forwarded. Not yet tested
+    # in combination with the other flags (see WT4B_flagtests.jl planning).
+    @structural_parameters begin
+        L_vplsw = true
+        PfFlag = false
+        Vflag = false
+        QFlag = false
+        PqFlag = false
+        PFlag = false     # OpenIPSL `pflag` -- separate from PfFlag, see reec_a
+        RefFlag = false
+        VcombFlag = true
+        freqFlag = false
+    end
     @components begin
         terminal=Terminal()
         regca = regc_a(
@@ -347,7 +445,7 @@ end
             lvpnt0 = 0.1,
             lvpnt1 = 0.6,
             I_0lim = -1.3,
-            L_vplsw = true)
+            L_vplsw = L_vplsw)
         reeca = Library.reec_a(
             V_0     = 1,
             V_dip   = -99, #0.85,
@@ -376,10 +474,11 @@ end
             P_max   = 1.0,
             dP_min  = -99,
             dP_max  = 99,
-            PfFlag  = false,
-            Vflag   = false,
-            QFlag   = false,
-            PqFlag  = false)
+            PfFlag  = PfFlag,
+            Vflag   = Vflag,
+            QFlag   = QFlag,
+            PqFlag  = PqFlag,
+            PFlag   = PFlag)
         repca = Library.repc_a(
             K_p        = 18,
             K_i        = 5,
@@ -411,9 +510,9 @@ end
             P_plantref = 0.015, #from powerflow
             freq_ref   = 50.0,
             p_0        = 0.015,
-            RefFlag    = false,
-            VcombFlag  = true,
-            freqFlag   = false)
+            RefFlag    = RefFlag,
+            VcombFlag  = VcombFlag,
+            freqFlag   = freqFlag)
         drive_train = Library.WTDTA1(H=0.01, freq1=10, D_shaft=0.015)
         f = Blocks.Constant(k=50.0)
         Vref = Blocks.Constant(k=1.0)
@@ -459,6 +558,7 @@ end
     @equations begin
         V_t ~ sqrt(terminal.u_r^2 + terminal.u_i^2)
         δ_v ~ atan(terminal.u_i, terminal.u_r)
+        # NOTE: sign convention verified correct -- see WECC_large_PV.
         pii ~ - terminal.i_i
         pir ~ - terminal.i_r
         pvr ~ terminal.u_r
@@ -564,6 +664,14 @@ end
         Qinit_input = false
         Pinit_input = false
         P_plantref_input = false
+        # NOTE (2026-08-13, see WECC_large_PV): flags exposed as structural parameters.
+        L_vplsw = false
+        PfFlag = false
+        Vflag = true
+        QFlag = false
+        PqFlag = false
+        RefFlag = false
+        VcombFlag = true
     end
     @components begin
         terminal=Terminal()
@@ -582,7 +690,7 @@ end
             lvpnt0 = 0.4,
             lvpnt1 = 0.8,
             I_0lim = -1.3,
-            L_vplsw = false)
+            L_vplsw = L_vplsw)
         reecb = Library.reec_b_pf(
             V_dip   = 0,
             V_up    = 999,
@@ -609,10 +717,10 @@ end
             P_max   = 1.0,
             dP_min  = -999,
             dP_max  = 999,
-            PqFlag  = false,
-            QFlag   = false,
-            PfFlag  = false,
-            Vflag   = true)
+            PqFlag  = PqFlag,
+            QFlag   = QFlag,
+            PfFlag  = PfFlag,
+            Vflag   = Vflag)
         repca = Library.repc_a_pf(
             K_p        = 1,
             K_i        = 10,
@@ -643,8 +751,8 @@ end
             D_dn       = 20.0,
             D_up       = 10.0,
             freq_ref   = 1, #in p.u.
-            RefFlag    = false,
-            VcombFlag  = true,
+            RefFlag    = RefFlag,
+            VcombFlag  = VcombFlag,
             freqFlag   = false)
         if f_input
             f_in = RealInput()
